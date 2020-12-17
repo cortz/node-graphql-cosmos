@@ -1,28 +1,11 @@
 import dotenv from 'dotenv';
 dotenv.config();
-import { ApolloServer, gql } from 'apollo-server';
+import { ApolloServer } from 'apollo-server';
+import { importSchema } from 'graphql-import';
 import { dataStore } from './dataStore';
 import resolvers from './resolvers';
 
-const typeDefs = gql`
-  enum State {
-    COMPLETE
-    INCOMPLETE
-    IN_PROGRESS
-  }
-  type Todo {
-    id: ID!
-    title: String
-    state: State
-  }
-  type Query {
-    todos: [Todo]
-    todo(id: ID!): Todo
-  }
-  type Mutation {
-    createTodo(title: String!, state: State!): Todo
-  }
-`;
+const typeDefs = importSchema('./src/schema.graphql');
 
 const server = new ApolloServer({ typeDefs, resolvers, context: { dataStore } });
 server.listen().then(({ url }: { url: string }) => {
