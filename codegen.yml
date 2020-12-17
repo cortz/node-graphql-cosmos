@@ -1,0 +1,20 @@
+overwrite: true
+schema: "./src/schema.graphql"
+documents: null
+generates:
+  src/generated/graphql.ts:
+    config:
+      contextType: "../dataStore#Context"
+      avoidOptionals:
+        field: false
+        inputValue: false
+        object: false
+      mappers:
+        Todo: ../dataStore#TodoModel
+
+    plugins:
+      - "typescript"
+      - "typescript-resolvers"
+  ./graphql.schema.json:
+    plugins:
+      - "introspection"
