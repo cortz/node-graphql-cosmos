@@ -1,38 +1,65 @@
-import { Resolvers } from './generated/graphql';
-const { CosmosClient } = require('@azure/cosmos');
+import { Privilege, Resolvers, State } from './generated/graphql';
+import { CosmosClient } from '@azure/cosmos';
 
-const client = new CosmosClient({
-  endpoint: process.env.ENDPOINT,
-  key: process.env.KEY,
-});
+export type TodoModel = {
+  id: string;
+  title: string;
+  state: State;
+  userId: string;
+};
 
-const container = client.database(process.env.DATABASE).container(process.env.CONTAINER);
+export type UserModel = {
+  id: string;
+  email: string;
+  privilege: Privilege;
+};
+
+const client = new CosmosClient(process.env.CosmosConnectionString || '');
+
+const container = client.database(process.env.DATABASE || '').container(process.env.CONTAINER || '');
 
 const resolvers: Resolvers = {
   Query: {
-    async todos(root, __, { dataStore }) {
-      return dataStore.getTodos(); // container.items.query('SELECT * from c').fetchAll()
-    },
-    async todo(root, { id }, { dataStore }) {
-      return dataStore.getTodoById(id);
-    },
+    todos: (_root, __, { dataStore }) => dataStore.getTodos(),
+    todo: async (_root, { id }, { dataStore }): Promise<TodoModel> => await dataStore.getTodoById(id),
+
+    user: (root, { id }, { dataStore }) => dataStore.getUserById(id),
+    users: (root, __, { dataStore }) => dataStore.getUsers(),
   },
   Mutation: {
-    createTodo: async (root, args) => {
+    createTodo: async (_root, args, { dataStore }): Promise<TodoModel> => {
       const response = await container.items.create(args);
-      return response.resource;
+      if (!response.resource) throw Error('An error occurred creating the user.');
+
+      return {
+        id: response.resource.id,
+        title: response.resource.title,
+        state: response.resource.state,
+        userId: response.resource.userId,
+      };
+    },
+    createUser: async (_root, args): Promise<UserModel> => {
+      const response = await container.items.create(args);
+      if (!response.resource) throw Error('An error occurred creating the todo');
+
+      return {
+        id: response.resource.id,
+        email: response.resource.email,
+        privilege: response.resource.privilege,
+      };
     },
   },
   Todo: {
-    id(todo) {
-      return todo.id;
-    },
-    title(todo) {
-      return todo.title;
-    },
-    state(todo) {
-      return todo.state;
-    },
+    id: ({ id }) => id,
+    title: ({ title }) => title,
+    state: ({ state }) => state,
+    user: ({ userId }, _, { dataStore }) => dataStore.getUserById(userId),
+  },
+  User: {
+    id: ({ id }) => id,
+    email: ({ email }) => email,
+    privilege: ({ privilege }) => privilege || Privilege.Contributer,
+    todos: ({ id }, _, { dataStore }) => dataStore.getTodosByUserId(id),
   },
 };
 

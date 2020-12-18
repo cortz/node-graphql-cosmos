@@ -1,22 +1,39 @@
 enum State {
-    COMPLETE
-    INCOMPLETE
-    IN_PROGRESS
-  }
+  COMPLETE
+  INCOMPLETE
+  IN_PROGRESS
+}
+
+enum Privilege {
+  CONTRIBUTER
+  READER
+}
 
 type Todo {
   id: ID!
   title: String
   state: State
+  user: User
+}
+
+type User {
+  id: ID!
+  email: String!
+  privilege: Privilege!
+  todos: [Todo]
 }
 
 type Query {
   todos: [Todo]
   todo(id: ID!): Todo
+
+  users: [User]
+  user(id: ID!): User
 }
 
 type Mutation {
-  createTodo(title: String!, state: State!): Todo
+  createTodo(title: String!, state: State!, userId: String!): Todo
+  createUser(email: String!, privilege: Privilege!): User
 }
 
 schema {
