@@ -10,7 +10,8 @@ generates:
         inputValue: false
         object: false
       mappers:
-        Todo: ../dataStore#TodoModel
+        Todo: ../resolvers#TodoModel
+        User: ../resolvers#UserModel
 
     plugins:
       - "typescript"

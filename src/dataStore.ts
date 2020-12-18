@@ -1,15 +1,26 @@
 import { CosmosClient } from '@azure/cosmos';
-import { State } from './generated/graphql';
+import { State, Privilege } from './generated/graphql';
 
-export type TodoModel = {
+interface Todo {
   id: string;
   title: string;
   state: State;
-};
+  userId: string;
+}
+
+interface User {
+  id: string;
+  email: string;
+  privilege: Privilege;
+}
 
 interface DataStore {
-  getTodoById(id: string): Promise<TodoModel>;
-  getTodos(): Promise<TodoModel[]>;
+  getTodosByUserId(userId: any): Promise<Todo[]>;
+  getTodoById(id: string): Promise<Todo>;
+  getTodos(): Promise<Todo[]>;
+
+  getUserById(id: string): Promise<User>;
+  getUsers(): Promise<User[]>;
 }
 
 class CosmosDataStore implements DataStore {
@@ -28,12 +39,35 @@ class CosmosDataStore implements DataStore {
   constructor(client: CosmosClient) {
     this.client = client;
   }
+  async getUserById(id: string): Promise<User> {
+    const container = this.getContainer();
 
-  async getTodoById(id: string): Promise<TodoModel> {
+    const user = await container.items
+      .query<User>({
+        query: 'SELECT * FROM c WHERE c.id = @id',
+        parameters: [{ name: '@id', value: id }],
+      })
+      .fetchAll();
+
+    return user.resources[0];
+  }
+
+  async getUsers(): Promise<User[]> {
+    const container = this.getContainer();
+    const users = await container.items
+      .query<User>({
+        query: 'SELECT * FROM c',
+      })
+      .fetchAll();
+
+    return users.resources;
+  }
+
+  async getTodoById(id: string): Promise<Todo> {
     const container = this.getContainer();
 
     const todo = await container.items
-      .query<TodoModel>({
+      .query<Todo>({
         query: 'SELECT * FROM c WHERE c.id = @id',
         parameters: [{ name: '@id', value: id }],
       })
@@ -42,11 +76,24 @@ class CosmosDataStore implements DataStore {
     return todo.resources[0];
   }
 
-  async getTodos(): Promise<TodoModel[]> {
+  async getTodos(): Promise<Todo[]> {
     const container = this.getContainer();
     const todos = await container.items
-      .query<TodoModel>({
+      .query<Todo>({
         query: 'SELECT * FROM c',
+      })
+      .fetchAll();
+
+    return todos.resources;
+  }
+
+  async getTodosByUserId(id: string): Promise<Todo[]> {
+    const container = this.getContainer();
+
+    const todos = await container.items
+      .query<Todo>({
+        query: 'SELECT * FROM c where c.userId = @id',
+        parameters: [{ name: '@id', value: id }],
       })
       .fetchAll();
 
@@ -54,12 +101,7 @@ class CosmosDataStore implements DataStore {
   }
 }
 
-export const dataStore = new CosmosDataStore(
-  new CosmosClient({
-    endpoint: process.env.ENDPOINT ?? '',
-    key: process.env.KEY ?? '',
-  }),
-);
+export const dataStore = new CosmosDataStore(new CosmosClient(process.env.CosmosConnectionString || ''));
 
 export type Context = {
   dataStore: DataStore;

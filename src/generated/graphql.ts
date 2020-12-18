@@ -1,5 +1,6 @@
 import { GraphQLResolveInfo } from 'graphql';
-import { TodoModel, Context } from '../dataStore';
+import { TodoModel, UserModel } from '../resolvers';
+import { Context } from '../dataStore';
 export type Maybe<T> = T | null;
 export type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] };
 export type MakeOptional<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]?: Maybe<T[SubKey]> };
@@ -20,17 +21,33 @@ export enum State {
   InProgress = 'IN_PROGRESS'
 }
 
+export enum Privilege {
+  Contributer = 'CONTRIBUTER',
+  Reader = 'READER'
+}
+
 export type Todo = {
   __typename?: 'Todo';
   id: Scalars['ID'];
   title?: Maybe<Scalars['String']>;
   state?: Maybe<State>;
+  user?: Maybe<User>;
+};
+
+export type User = {
+  __typename?: 'User';
+  id: Scalars['ID'];
+  email: Scalars['String'];
+  privilege: Privilege;
+  todos?: Maybe<Array<Maybe<Todo>>>;
 };
 
 export type Query = {
   __typename?: 'Query';
   todos?: Maybe<Array<Maybe<Todo>>>;
   todo?: Maybe<Todo>;
+  users?: Maybe<Array<Maybe<User>>>;
+  user?: Maybe<User>;
 };
 
 
@@ -38,15 +55,28 @@ export type QueryTodoArgs = {
   id: Scalars['ID'];
 };
 
+
+export type QueryUserArgs = {
+  id: Scalars['ID'];
+};
+
 export type Mutation = {
   __typename?: 'Mutation';
   createTodo?: Maybe<Todo>;
+  createUser?: Maybe<User>;
 };
 
 
 export type MutationCreateTodoArgs = {
   title: Scalars['String'];
   state: State;
+  userId: Scalars['String'];
+};
+
+
+export type MutationCreateUserArgs = {
+  email: Scalars['String'];
+  privilege: Privilege;
 };
 
 
@@ -128,9 +158,11 @@ export type DirectiveResolverFn<TResult = {}, TParent = {}, TContext = {}, TArgs
 /** Mapping between all available schema types and the resolvers types */
 export type ResolversTypes = {
   State: State;
+  Privilege: Privilege;
   Todo: ResolverTypeWrapper<TodoModel>;
   ID: ResolverTypeWrapper<Scalars['ID']>;
   String: ResolverTypeWrapper<Scalars['String']>;
+  User: ResolverTypeWrapper<UserModel>;
   Query: ResolverTypeWrapper<{}>;
   Mutation: ResolverTypeWrapper<{}>;
   Boolean: ResolverTypeWrapper<Scalars['Boolean']>;
@@ -141,6 +173,7 @@ export type ResolversParentTypes = {
   Todo: TodoModel;
   ID: Scalars['ID'];
   String: Scalars['String'];
+  User: UserModel;
   Query: {};
   Mutation: {};
   Boolean: Scalars['Boolean'];
@@ -150,20 +183,33 @@ export type TodoResolvers<ContextType = Context, ParentType extends ResolversPar
   id: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   title: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   state: Resolver<Maybe<ResolversTypes['State']>, ParentType, ContextType>;
+  user: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
+export type UserResolvers<ContextType = Context, ParentType extends ResolversParentTypes['User'] = ResolversParentTypes['User']> = {
+  id: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
+  email: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  privilege: Resolver<ResolversTypes['Privilege'], ParentType, ContextType>;
+  todos: Resolver<Maybe<Array<Maybe<ResolversTypes['Todo']>>>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
 export type QueryResolvers<ContextType = Context, ParentType extends ResolversParentTypes['Query'] = ResolversParentTypes['Query']> = {
   todos: Resolver<Maybe<Array<Maybe<ResolversTypes['Todo']>>>, ParentType, ContextType>;
   todo: Resolver<Maybe<ResolversTypes['Todo']>, ParentType, ContextType, RequireFields<QueryTodoArgs, 'id'>>;
+  users: Resolver<Maybe<Array<Maybe<ResolversTypes['User']>>>, ParentType, ContextType>;
+  user: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType, RequireFields<QueryUserArgs, 'id'>>;
 };
 
 export type MutationResolvers<ContextType = Context, ParentType extends ResolversParentTypes['Mutation'] = ResolversParentTypes['Mutation']> = {
-  createTodo: Resolver<Maybe<ResolversTypes['Todo']>, ParentType, ContextType, RequireFields<MutationCreateTodoArgs, 'title' | 'state'>>;
+  createTodo: Resolver<Maybe<ResolversTypes['Todo']>, ParentType, ContextType, RequireFields<MutationCreateTodoArgs, 'title' | 'state' | 'userId'>>;
+  createUser: Resolver<Maybe<ResolversTypes['User']>, ParentType, ContextType, RequireFields<MutationCreateUserArgs, 'email' | 'privilege'>>;
 };
 
 export type Resolvers<ContextType = Context> = {
   Todo: TodoResolvers<ContextType>;
+  User: UserResolvers<ContextType>;
   Query: QueryResolvers<ContextType>;
   Mutation: MutationResolvers<ContextType>;
 };
